@@ -27,6 +27,9 @@ import java.util.List;
 import java.util.Map;
 import udmi.lib.ProtocolFamily;
 import udmi.schema.CloudModel.Resource_type;
+import udmi.schema.AlarmAlarmsetConfig;
+import udmi.schema.AlarmAlarmsetModel;
+import udmi.schema.AlarmsetConfig;
 import udmi.schema.Config;
 import udmi.schema.DiscoveryConfig;
 import udmi.schema.FamilyDiscoveryConfig;
@@ -140,6 +143,7 @@ public class ConfigManager {
     config.system = getSystemConfig();
     config.gateway = getGatewayConfig();
     config.pointset = getDevicePointsetConfig();
+    config.alarmset = getDeviceAlarmsetConfig();
     config.localnet = getDeviceLocalnetConfig();
     config.discovery = getDiscoveryConfig();
     return config;
@@ -261,6 +265,37 @@ public class ConfigManager {
           wrapExceptionWithContext(e, false));
     }
     return pointRef;
+  }
+
+  private AlarmsetConfig getDeviceAlarmsetConfig() {
+    if (metadata.alarmset == null) {
+      return null;
+    }
+
+    AlarmsetConfig alarmsetConfig = new AlarmsetConfig();
+    boolean excludeAlarms = isTrue(metadata.alarmset.exclude_alarms_from_config);
+    if (!excludeAlarms) {
+      alarmsetConfig.alarms = new HashMap<>();
+      metadata.alarmset.alarms.forEach(
+        (metadataKey, value) ->
+          alarmsetConfig.alarms.computeIfAbsent(
+            metadataKey, configKey -> configAlarmFromMetadata(configKey, value))
+      );
+    }
+    return alarmsetConfig;
+  }
+
+  AlarmAlarmsetConfig configAlarmFromMetadata(String configKey, AlarmAlarmsetModel metadata) {
+    return runInContext("While converting alarm " + configKey, () -> {
+      AlarmAlarmsetConfig alarmConfig = new AlarmAlarmsetConfig();
+      alarmConfig.ref = alarmConfigRef(metadata);
+      return alarmConfig;
+    });
+  }
+
+  private String alarmConfigRef(AlarmAlarmsetModel model) {
+    String alarmRef = model.ref;
+    return alarmRef;
   }
 
   private String getGatewayId() {

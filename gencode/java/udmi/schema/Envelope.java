@@ -112,6 +112,7 @@ public class Envelope {
         SWARM("swarm"),
         LOCALNET("localnet"),
         POINTSET("pointset"),
+        ALARMSET("alarmset"),
         VALIDATION("validation"),
         BLOBSET("blobset"),
         MONITORING("monitoring");

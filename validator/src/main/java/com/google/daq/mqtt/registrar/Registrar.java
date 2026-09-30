@@ -1213,6 +1213,7 @@ public class Registrar {
       System.err.println("Sending model/config update for " + localDevice.getDeviceId());
       sendUpdateMessage(localDevice, SubFolder.SYSTEM);
       sendUpdateMessage(localDevice, SubFolder.POINTSET);
+      sendUpdateMessage(localDevice, SubFolder.ALARMSET);
       sendUpdateMessage(localDevice, SubFolder.GATEWAY);
       sendUpdateMessage(localDevice, SubFolder.LOCALNET);
     }
