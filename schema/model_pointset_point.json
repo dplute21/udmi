@@ -1,5 +1,5 @@
 {
-  "$udmi_version": "1.5.2",
+  "$udmi_version": "1.5.7",
   "title": "Point Pointset Model",
   "description": "Information about a specific point name of the device.",
   "type": "object",
@@ -8,6 +8,10 @@
   "properties": {
     "units": {
       "description": "Expected unit configuration for the point",
+      "type": "string"
+    },
+    "units_reported": {
+      "description": "Actual input unit that is sent from the device",
       "type": "string"
     },
     "type": {
@@ -66,6 +70,11 @@
       "type": "string",
       "examples": ["AI3", "400070"]
     },
+    "url": {
+      "description": "Complete resolved URL of this point as determined by the gateway and ref blocks",
+      "type": "string",
+      "examples": ["bacnet://1234/AV/1"]
+    },
     "adjunct": {
       "type": "object",
       "existingJavaType": "java.util.Map<String, String>",
@@ -95,11 +104,19 @@
         }
       }
     },
-    "link": {
+    "expr": {
       "type": "string",
       "description": "Virtual equipment mapping linking this local point to a remote point in another device",
       "pattern": "^[-0-9a-zA-Z$]+:[a-z0-9_]+$",
       "examples": ["VAV-3:supply_air_flowrate_sensor"]
+    },
+    "values": {
+      "type": "object",
+      "description": "State value mapping for this point (e.g. 0.0: OFF)",
+      "additionalProperties": { "type": "string" }
+    },
+    "translation": {
+      "$ref": "file:building_translation.json#"
     }
   }
 }

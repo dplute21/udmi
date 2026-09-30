@@ -15,10 +15,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * 
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "alarms",
-    "exclude_alarms_from_config"
-})
 public class AlarmsetModel {
 
     /**

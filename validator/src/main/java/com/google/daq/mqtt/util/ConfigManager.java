@@ -18,6 +18,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 
 import com.google.common.collect.ImmutableList;
+import com.google.daq.mqtt.util.providers.FamilyProvider;
 import com.google.udmi.util.ExceptionList;
 import com.google.udmi.util.SiteModel;
 import java.io.File;
@@ -179,26 +180,58 @@ public class ConfigManager {
       String family = target.family;
       String localAddr = ifNotNullGet(family, this::getLocalnetAddr);
       String gatewayAddr = target.addr;
-      checkState(localAddr == null || gatewayAddr == null,
-          format("both gateway.target.addr and localnet.families.%s.addr should not be defined",
-              family));
+      captureSchemaViolation(
+              format("%s gateway target", family),
+          () -> checkState(localAddr == null || gatewayAddr == null,
+              format("both gateway.target.addr and localnet.families.%s.addr should not be defined",
+                  family)));
       configVar.target.addr = ofNullable(localAddr).orElse(gatewayAddr);
     });
 
     return gatewayConfig;
   }
 
+  private FamilyProvider getFamilyProvider(String family) {
+    if (NAMED_FAMILIES.containsKey(family)) {
+      return NAMED_FAMILIES.get(family);
+    }
+    throw new RuntimeException("Unknown protocol family: " + family);
+  }
+
+  private void captureSchemaViolation(String description, Runnable action) {
+    try {
+      action.run();
+    } catch (Exception e) {
+      schemaViolationsMap.put(String.format("%s: %s", description, getCurrentContext()),
+          wrapExceptionWithContext(e, false));
+    }
+  }
+
   private String getLocalnetAddr(String rawFamily) {
     String family = ofNullable(rawFamily).orElse(DEFAULT_FAMILY);
     String addr = catchToNull(() -> metadata.localnet.families.get(family).addr);
-    ifNotNullThen(addr, a -> NAMED_FAMILIES.get(family).validateAddr(a));
+    boolean isVendorRef = metadata.gateway != null
+        && metadata.gateway.target != null
+        && Boolean.TRUE.equals(metadata.gateway.target.vendor_ref);
+    if (!isVendorRef && addr != null) {
+      captureSchemaViolation(
+          format("%s localnet addr", family),
+          () -> getFamilyProvider(family).validateAddr(addr));
+    }
     return addr;
   }
 
   private String getLocalnetNetwork(String rawFamily) {
     String family = ofNullable(rawFamily).orElse(DEFAULT_FAMILY);
     String addr = catchToNull(() -> metadata.localnet.families.get(family).network);
-    ifNotNullThen(addr, a -> NAMED_FAMILIES.get(family).validateNetwork(addr));
+    boolean isVendorRef = metadata.gateway != null
+        && metadata.gateway.target != null
+        && Boolean.TRUE.equals(metadata.gateway.target.vendor_ref);
+    if (!isVendorRef && addr != null) {
+      captureSchemaViolation(
+          format("%s localnet network", family),
+          () -> getFamilyProvider(family).validateNetwork(addr));
+    }
     return addr;
   }
 
@@ -243,6 +276,9 @@ public class ConfigManager {
 
   private String pointConfigRef(PointPointsetModel model) {
     String pointRef = model.ref;
+    if (pointRef == null) {
+      return null;
+    }
     String rawFamily = catchToNull(() -> metadata.gateway.target.family);
     String family = ofNullable(rawFamily).orElse(DEFAULT_FAMILY);
 
@@ -257,12 +293,26 @@ public class ConfigManager {
     checkState(localAddr == null || gatewayAddr == null,
         format("both gateway.target.addr and localnet.families.%s.addr should not be defined",
             family));
-    try {
-      String fullRef = constructUrl(family, localAddr, pointRef);
-      NAMED_FAMILIES.get(family).validateUrl(fullRef);
-    } catch (Exception e) {
-      schemaViolationsMap.put(String.format("%s %s: %s", family, pointRef, getCurrentContext()),
-          wrapExceptionWithContext(e, false));
+    String deviceAddr = ofNullable(localAddr).orElse(gatewayAddr);
+    String localUnitId = catchToNull(() -> metadata.localnet.families.get(family).unitid);
+    String gatewayUnitId = catchToNull(() -> metadata.gateway.target.unitid);
+    String unitId = ofNullable(localUnitId).orElse(gatewayUnitId);
+    boolean isVendorRef = metadata.gateway != null
+        && metadata.gateway.target != null
+        && Boolean.TRUE.equals(metadata.gateway.target.vendor_ref);
+    if (!isVendorRef) {
+      captureSchemaViolation(
+          format("%s %s", family, pointRef),
+          () -> {
+            String fullRef = pointRef.contains("://") ? pointRef
+                : constructUrl(family, deviceAddr, unitId, pointRef);
+            String targetFamily = "vendor";
+            if (fullRef.contains("://")) {
+              targetFamily = fullRef.substring(0, fullRef.indexOf("://"));
+            }
+
+            getFamilyProvider(targetFamily).validateUrl(fullRef);
+          });
     }
     return pointRef;
   }

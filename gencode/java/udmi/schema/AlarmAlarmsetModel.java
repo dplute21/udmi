@@ -15,16 +15,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * 
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "description",
-    "category",
-    "severity",
-    "requires_ack",
-    "return_to_normal_event",
-    "return_requires_ack",
-    "ref",
-    "structure"
-})
 public class AlarmAlarmsetModel {
 
     /**

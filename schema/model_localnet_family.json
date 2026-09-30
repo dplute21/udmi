@@ -1,5 +1,5 @@
 {
-  "$udmi_version": "1.5.2",
+  "$udmi_version": "1.5.7",
   "title": "Family Localnet Model",
   "type": "object",
   "description": "The type of network",
@@ -14,6 +14,11 @@
         "display": "show",
         "style": "bold"
       }
+    },
+    "unitid": {
+      "type": "string",
+      "description": "The slave unit ID of the device for protocol families like modbus",
+      "examples": ["1", "255"]
     },
     "network": {
       "type": "string",
@@ -38,16 +43,14 @@
       "type": "string",
       "description": "The device id of the node's parent"
     },
+    "vendor_ref": {
+      "description": "If true, then the system should not try to validate the refs",
+      "type": "boolean"
+    },
     "family": {
       "description": "The family designator, used only when the entry is not keyed in a family map",
       "type": "string",
       "examples": ["ipv4", "bacnet"]
-    },
-    "network_id": {
-      "description": "The network within the gateway device to use for this network",
-      "type": "string",
-      "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$",
-      "examples": ["modbus_1", "bacnet_1"]
     }
   }
 }

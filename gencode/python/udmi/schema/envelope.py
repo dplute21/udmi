@@ -26,6 +26,7 @@ class SubFolder(Enum):
     validation = 'validation'
     blobset = 'blobset'
     monitoring = 'monitoring'
+    streams = 'streams'
 
 
 class SubType(Enum):
@@ -40,6 +41,7 @@ class SubType(Enum):
     query = 'query'
     reply = 'reply'
     model = 'model'
+    propose = 'propose'
 
 
 @dataclass
@@ -57,7 +59,9 @@ class Envelope(DataModel):
     source: Optional[str] = None
     gatewayId: Optional[str] = None
     transactionId: Optional[str] = None
+    principal: Optional[str] = None
     publishTime: Optional[str] = None
+    updateFrom: Optional[str] = None
     rawFolder: Optional[str] = None
     subFolder: Optional[SubFolder] = None
     subType: Optional[SubType] = None

@@ -16,12 +16,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * 
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "generation",
-    "enumerations",
-    "families",
-    "alarms"
-})
 public class DiscoveryConfig {
 
     /**

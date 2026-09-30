@@ -1,5 +1,5 @@
 {
-  "$udmi_version": "1.5.2",
+  "$udmi_version": "1.5.7",
   "title": "Envelope",
   "description": "The UDMI `envelope` is not a message itself, per se, but the attributes and other information that is delivered along with a message. [Message Envelope Documentation](../docs/messages/envelope.md)",
   "$section": "Messages",
@@ -38,9 +38,16 @@
     "transactionId": {
       "type": "string"
     },
+    "principal": {
+      "type": "string"
+    },
     "publishTime": {
       "type": "string",
       "format": "date-time"
+    },
+    "updateFrom": {
+      "description": "Timestamp of the base model message this update or proposal is derived from",
+      "type": "string"
     },
     "rawFolder": {
       "type": "string"
@@ -59,9 +66,11 @@
         "swarm",
         "localnet",
         "pointset",
+        "alarmset",
         "validation",
         "blobset",
-        "monitoring"
+        "monitoring",
+        "streams"
       ]
     },
     "subType": {
@@ -76,7 +85,8 @@
         "state",
         "query",
         "reply",
-        "model"
+        "model",
+        "propose"
       ]
     }
   },

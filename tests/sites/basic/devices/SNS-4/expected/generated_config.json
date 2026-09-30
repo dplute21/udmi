@@ -1,9 +1,8 @@
 {
   "gateway": {
     "target": {
-      "addr": "2",
-      "family": "modbus",
-      "network_id": "modbus_rtu_1"
+      "addr": "modbus_rtu_1/2",
+      "family": "modbus"
     }
   },
   "pointset": {
@@ -15,5 +14,5 @@
     "operation": {}
   },
   "timestamp": "2020-05-01T13:39:07Z",
-  "version": "1.5.3"
+  "version": "1.5.7"
 }

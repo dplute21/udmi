@@ -1,7 +1,6 @@
 package udmi.lib.client.manager;
 
 import static com.google.udmi.util.GeneralUtils.catchToNull;
-import static com.google.udmi.util.GeneralUtils.ifNotNullGet;
 import static com.google.udmi.util.GeneralUtils.ifNotNullThen;
 import static com.google.udmi.util.GeneralUtils.ifNullThen;
 import static com.google.udmi.util.GeneralUtils.ifTrueGet;
@@ -309,21 +308,55 @@ public interface DiscoveryManager extends SubBlockManager {
     config.depth = Optional.ofNullable(config.depth)
         .orElse(config.addrs != null ? Depth.DETAILS : Depth.ENTRIES);
 
-    discoveryProvider(family).startScan(config, (deviceId, discoveryEvent) ->
-        ifNotNullThen(discoveryEvent.addr, addr -> {
-          if (ifNotNullGet(targets, t -> !t.contains(addr), false)) {
-            info(format("Discovered %s device %s for %s skipped", family, addr, generation));
-            return;
-          }
-          int activeCount = sendCount.getAndIncrement();
-          familyDiscoveryState.active_count = activeCount;
-          String network = discoveryEvent.network;
-          info(format("Discovered %s device %s %s for %s as %s", family, network, addr, generation,
-              activeCount));
-          discoveryEvent.event_no = activeCount;
-          publishDiscoveryEvent(family, scanGeneration, deviceId, discoveryEvent);
-          updateState();
-        }));
+    FamilyProvider provider = discoveryProvider(family);
+    if (provider == null) {
+      info(format("Discovered %s has no provider, skipping provider scan", family));
+      return;
+    }
+
+    provider.startScan(config, (deviceId, discoveryEvent) -> {
+      String addr = discoveryEvent.addr;
+      String network = discoveryEvent.network;
+      if (addr == null && network == null) {
+        return;
+      }
+      if (addr != null && !matchesTarget(targets, addr)) {
+        info(format("Discovered %s device %s for %s skipped", family, addr, generation));
+        return;
+      }
+      int activeCount = sendCount.getAndIncrement();
+      familyDiscoveryState.active_count = activeCount;
+      info(format("Discovered %s device %s %s for %s as %s", family, network, addr, generation,
+          activeCount));
+      discoveryEvent.event_no = activeCount;
+      publishDiscoveryEvent(family, scanGeneration, deviceId, discoveryEvent);
+      updateState();
+    });
+  }
+
+  /**
+   * Checks whether a discovered address matches the configured target addresses or ranges.
+   */
+  static boolean matchesTarget(Set<String> targets, String addr) {
+    if (targets == null) {
+      return true;
+    }
+    if (targets.contains(addr)) {
+      return true;
+    }
+    Long addrVal = catchToNull(() -> Long.parseLong(addr));
+    if (addrVal == null) {
+      return false;
+    }
+    return targets.stream().anyMatch(target -> {
+      String[] parts = target.split("-", 2);
+      if (parts.length == 2) {
+        Long low = catchToNull(() -> Long.parseLong(parts[0]));
+        Long high = catchToNull(() -> Long.parseLong(parts[1]));
+        return low != null && high != null && addrVal >= low && addrVal <= high;
+      }
+      return false;
+    });
   }
 
   /**
@@ -346,7 +379,10 @@ public interface DiscoveryManager extends SubBlockManager {
       info(format("Discovered %s stopping %s (=? %s)", family, isoConvert(scanGeneration),
           isoConvert(familyDiscoveryState.generation)));
       ifTrueThen(scanGeneration.equals(familyDiscoveryState.generation), () -> {
-        discoveryProvider(family).stopScan();
+        FamilyProvider provider = discoveryProvider(family);
+        if (provider != null) {
+          provider.stopScan();
+        }
         sendMarkerDiscoveryEvent(family, scanGeneration, sendCount);
         familyDiscoveryState.phase = STOPPED;
         updateState();

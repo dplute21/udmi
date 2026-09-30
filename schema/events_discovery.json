@@ -1,5 +1,5 @@
 {
-  "$udmi_version": "1.5.2",
+  "$udmi_version": "1.5.7",
   "title": "Discovery Events",
   "description": "[Discovery result](../docs/specs/discovery.md) with implicit discovery",
   "$section": "Messages",
@@ -89,7 +89,7 @@
       "additionalProperties": false,
       "existingJavaType": "java.util.Map<String, RefDiscovery>",
       "patternProperties": {
-        "^[-_.:/a-zA-Z0-9]+$": {
+        "^[-_.:/#a-zA-Z0-9]+$": {
           "$ref": "file:discovery_ref.json#"
         }
       }

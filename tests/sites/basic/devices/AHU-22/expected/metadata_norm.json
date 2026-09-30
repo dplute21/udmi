@@ -18,15 +18,17 @@
   "pointset": {
     "points": {
       "filter_alarm_pressure_status": {
-        "ref": "BV:11#present_value",
-        "units": "No-units"
+        "ref": "BV/11#present_value",
+        "units": "No-units",
+        "url": "bacnet://582312/BV/11#present_value"
       },
       "filter_differential_pressure": {
         "units": "Bars"
       },
       "filter_differential_pressure_sensor": {
         "ref": "AV12.present_value",
-        "units": "Degrees-Celsius"
+        "units": "Degrees-Celsius",
+        "url": "bacnet://582312/AV12.present_value"
       }
     },
     "sample_rate_sec": 30
@@ -50,5 +52,5 @@
     }
   },
   "timestamp": "2020-05-01T13:39:07Z",
-  "version": "1.5.2"
+  "version": "1.5.7"
 }

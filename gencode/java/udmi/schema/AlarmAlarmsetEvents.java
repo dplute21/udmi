@@ -15,13 +15,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * 
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({
-    "activate_time",
-    "activate_ack",
-    "active",
-    "return_to_normal_time",
-    "return_to_normal_ack"
-})
 public class AlarmAlarmsetEvents {
 
     /**

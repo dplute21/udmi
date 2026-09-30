@@ -29,14 +29,18 @@ Family = Optional[str]
 class Depth(Enum):
     buckets = 'buckets'
     entries = 'entries'
-    details = 'details'
     parts = 'parts'
+    system = 'system'
+    refs = 'refs'
+    details = 'details'
+    trace = 'trace'
 
 
 class IotProvider(Enum):
     local = 'local'
     dynamic = 'dynamic'
     implicit = 'implicit'
+    zanzara = 'zanzara'
     pubsub = 'pubsub'
     mqtt = 'mqtt'
     gbos = 'gbos'

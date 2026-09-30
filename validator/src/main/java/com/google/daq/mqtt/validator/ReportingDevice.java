@@ -72,7 +72,7 @@ public class ReportingDevice implements ErrorCollector {
     entry.detail = detail == null ? Common.getExceptionDetail(error, ReportingDevice.class,
         ReportingDevice::validationMessage) : detail;
     assertTrue("valid entry category", Category.LEVEL.containsKey(category));
-    entry.category = Category.VALIDATION_DEVICE_SCHEMA;
+    entry.category = category;
     entry.level = Level.ERROR.value();
     entry.timestamp = getTimestamp();
     return entry;
@@ -160,6 +160,15 @@ public class ReportingDevice implements ErrorCollector {
     return lastSeen.after(getThreshold(now));
   }
 
+  public boolean seenSchemaRecently(String schemaName, Instant now) {
+    Date seen = messageMarks.get(schemaName);
+    return seen != null && seen.after(getThreshold(now));
+  }
+
+  public boolean hasSeenTelemetry(Instant now) {
+    return seenSchemaRecently("events_pointset", now);
+  }
+
   /**
    * Check if this device as errors.
    *
@@ -175,7 +184,8 @@ public class ReportingDevice implements ErrorCollector {
   public void validateRawMessage(String schemaName, Map<String, Object> message,
       Map<String, String> attributes) {
     if (metadata != null) {
-      Object obj = convertTo(Common.classForSchema(schemaName), message);
+      Class<?> targetClass = Common.classForSchema(schemaName);
+      Object obj = convertTo(targetClass, message);
       pointsetValidator.validateMessage(obj, attributes);
       discoveryValidator.validateMessage(obj, attributes);
     }

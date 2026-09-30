@@ -1,5 +1,5 @@
 {
-  "$udmi_version": "1.5.2",
+  "$udmi_version": "1.5.7",
   "title": "Endpoint Configuration",
   "description": "Parameters to define a message endpoint",
   "$section": "Blobs",
@@ -222,6 +222,30 @@
             }
           }
         }
+      }
+    },
+    "ca_file": {
+      "description": "Path to the CA certificate file",
+      "type": "string",
+      "$presentation": {
+        "display": "show",
+        "style": "bold"
+      }
+    },
+    "cert_file": {
+      "description": "Path to the client certificate file",
+      "type": "string",
+      "$presentation": {
+        "display": "show",
+        "style": "bold"
+      }
+    },
+    "key_file": {
+      "description": "Path to the client private key file",
+      "type": "string",
+      "$presentation": {
+        "display": "show",
+        "style": "bold"
       }
     },
     "generation": {

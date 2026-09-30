@@ -50,8 +50,21 @@ public interface FamilyProvider {
     }).collect(Collectors.toMap(FamilyProvider::familyKey, family -> family));
   }
 
+  /**
+   * Construct a URL for the given family, device, and point.
+   */
   static String constructUrl(String family, String device, String point) {
-    return family + "://" + device + "/" + point;
+    return constructUrl(family, device, null, point);
+  }
+
+  /**
+   * Construct a URL for the given family, device, unitId, and point.
+   */
+  static String constructUrl(String family, String device, String unitId, String point) {
+    if (unitId != null) {
+      return family + "://" + device + "/" + unitId + "/" + (point != null ? point : "");
+    }
+    return family + "://" + device + "/" + (point != null ? point : "");
   }
 
   /**
@@ -111,5 +124,16 @@ public interface FamilyProvider {
    */
   default void validatePoint(String metadataRef) {
     throw new IllegalArgumentException("Point reference not allowed for family " + familyKey());
+  }
+
+  /**
+   * Validate a family localnet model.
+   */
+  default void validateModel(udmi.schema.FamilyLocalnetModel familyModel) {
+    if (familyModel.adjunct != null && !familyModel.adjunct.isEmpty()) {
+      throw new IllegalArgumentException(String.format(
+          "Adjunct properties not allowed for family %s: %s",
+          familyKey(), familyModel.adjunct.keySet()));
+    }
   }
 }

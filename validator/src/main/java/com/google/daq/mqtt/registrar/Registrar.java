@@ -121,6 +121,7 @@ import udmi.schema.Credential;
 import udmi.schema.Envelope.SubFolder;
 import udmi.schema.ExecutionConfiguration;
 import udmi.schema.GatewayModel;
+import udmi.schema.IotAccess.IotProvider;
 import udmi.schema.LinkExternalsModel;
 import udmi.schema.Metadata;
 import udmi.schema.SetupUdmiConfig;
@@ -189,6 +190,7 @@ public class Registrar {
   private boolean metadataModelOut;
   private int createRegistries = -1;
   private int runnerThreads = 5;
+  private int bindingThreads = -1;
   private ExecutorService executor;
   private List<Future<?>> executing = new ArrayList<>();
   private SiteModel siteModel;
@@ -332,6 +334,16 @@ public class Registrar {
       description = "Set number of runner threads")
   private void setRunnerThreads(String argValue) {
     runnerThreads = Integer.parseInt(argValue);
+  }
+
+  @CommandLineOption(short_form = "-N", arg_name = "threads",
+      description = "Set number of binding threads")
+  private void setBindingThreads(String argValue) {
+    bindingThreads = Integer.parseInt(argValue);
+  }
+
+  private int getBindingThreads() {
+    return bindingThreads > 0 ? bindingThreads : runnerThreads;
   }
 
   @CommandLineOption(short_form = "-d", description = "Delete (known) devices")
@@ -1040,6 +1052,7 @@ public class Registrar {
   }
 
   private boolean pushToCloudIoT(String localName, LocalDevice localDevice) {
+    System.err.println("Registering device " + localName + " with IoT provider...");
     boolean created = updateCloudIoT && updateCloudIoT(localDevice);
     CloudModel device =
         checkNotNull(fetchDevice(localName, created), "missing device " + localName);
@@ -1172,8 +1185,8 @@ public class Registrar {
       ifNotTrueThen(augmentedModel.equals(loadFile(CloudModel.class, modelFile)), () -> {
         System.err.println("Writing extra device model to " + devPath);
         writeFile(augmentedModel, modelFile);
-        updateExtraMetadata(extraName, extraDir);
       });
+      updateExtraMetadata(extraName, extraDir);
     } catch (Exception e) {
       throw new RuntimeException("Writing extra device data " + extraDir.getAbsolutePath(), e);
     }
@@ -1279,18 +1292,23 @@ public class Registrar {
             if (dryRun) {
               System.err.printf("Dry run: would bind %s to %s%n", setOrSize(toBind), gatewayId);
             } else {
-              cloudIotManager.bindDevices(toBind, gatewayId, true);
+              // TODO: Put a proper fix and not depend on specific fixes for testing.
+              boolean isLocal =
+                  cloudIotManager.executionConfiguration.iot_provider == IotProvider.MQTT
+                  || cloudIotManager.executionConfiguration.iot_provider == IotProvider.ZANZARA
+                  || cloudIotManager.executionConfiguration.iot_provider == IotProvider.IMPLICIT;
+              cloudIotManager.bindDevices(isLocal ? proxyIds : toBind, gatewayId, true);
             }
             recordOperation(ModelOperation.BIND, toBind.size());
           } catch (Exception e) {
             proxiedDevices.forEach(localDevice ->
                 localDevice.captureError(ExceptionCategory.binding, e));
           }
-        });
+        }, getBindingThreads());
       });
 
       System.err.printf("Waiting for device binding...%n");
-      dynamicTerminate();
+      dynamicTerminate(gatewayBindings.size(), getBindingThreads());
 
       Duration between = Duration.between(start, Instant.now());
       double seconds = between.getSeconds() + between.getNano() / 1e9;
@@ -1320,13 +1338,13 @@ public class Registrar {
     }
   }
 
-  private synchronized void dynamicTerminate(int expected) {
+  private synchronized void dynamicTerminate(int expected, int threads) {
     try {
       if (executor == null) {
         return;
       }
       executor.shutdown();
-      int timeout = (int) (ceil(expected / (double) runnerThreads) * EACH_ITEM_TIMEOUT_SEC) + 1;
+      int timeout = (int) (ceil(expected / (double) threads) * EACH_ITEM_TIMEOUT_SEC) + 1;
       System.err.printf("Waiting %ds for %d tasks to complete...%n", timeout, expected);
       if (!executor.awaitTermination(timeout, TimeUnit.SECONDS)) {
         throw new RuntimeException("Incomplete executor termination after " + timeout + "s");
@@ -1339,10 +1357,18 @@ public class Registrar {
     }
   }
 
-  private synchronized void parallelExecute(Runnable runnable) {
-    ifNullThen(executor, () -> executor = Executors.newFixedThreadPool(runnerThreads));
+  private synchronized void dynamicTerminate(int expected) {
+    dynamicTerminate(expected, runnerThreads);
+  }
+
+  private synchronized void parallelExecute(Runnable runnable, int threads) {
+    ifNullThen(executor, () -> executor = Executors.newFixedThreadPool(threads));
     ifNullThen(executing, () -> executing = new ArrayList<>());
     executing.add(executor.submit(runnable));
+  }
+
+  private synchronized void parallelExecute(Runnable runnable) {
+    parallelExecute(runnable, runnerThreads);
   }
 
   private Set<Entry<String, String>> getBindings(Set<String> deviceSet, LocalDevice localDevice) {
